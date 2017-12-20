@@ -16,6 +16,7 @@ const CGFloat kSQTDefaultAnimationDuration = 0.2f;
 @property (nonatomic, weak) UIScrollView *scrollView;
 @property (nonatomic) CGFloat zeroingOffset;
 
+
 @end
 
 @implementation SQTShyNavigationBar
@@ -231,16 +232,21 @@ const CGFloat kSQTDefaultAnimationDuration = 0.2f;
     // Enclose changes
     void(^moveBlock)(void) = ^(void) {
         // Adjust frame
-        self.frame = frame;
+        CGRect ajustFrame = frame;
+//        if (@available(iOS 11.0, *)) {
+//            ajustFrame.origin.y = frame.origin.y + self.safeAreaInsets.top;
+//        }
+        self.frame = ajustFrame;
         
         // Run update block
         if (self.updateBlock && self.settled) {
             CGFloat maximumLocation = [self defaultLocation];
-            CGFloat minimumLocation = [self minimumLocationForFrame:frame];
-            CGFloat shyFraction = (frame.origin.y - minimumLocation)/(maximumLocation - minimumLocation);
+            CGFloat minimumLocation = [self minimumLocationForFrame:ajustFrame];
+            CGFloat shyFraction = (ajustFrame.origin.y - minimumLocation)/(maximumLocation - minimumLocation);
             
             CGRect screenRect = [UIScreen mainScreen].bounds;
-            CGRect intersection = CGRectIntersection(screenRect, frame);
+            CGRect intersection = CGRectIntersection(screenRect, ajustFrame);
+            
             if (CGRectIsNull(intersection)) intersection = CGRectZero;
             self.updateBlock(intersection, shyFraction, self.subviews);
         }
@@ -248,7 +254,11 @@ const CGFloat kSQTDefaultAnimationDuration = 0.2f;
         // Adjust insets
         UIEdgeInsets inset = self.scrollView.contentInset;
         CGFloat statusBarHeight = [self defaultLocation];
-        inset.top = MAX(MIN(self.fullHeight + statusBarHeight, frame.origin.y + frame.size.height), self.shyHeight);
+        inset.top = MAX(MIN(self.fullHeight + statusBarHeight, ajustFrame.origin.y + ajustFrame.size.height), self.shyHeight);
+        
+//        if (@available(iOS 11.0, *)) {
+//            inset.top = self.safeAreaInsets.top;
+//        }
         self.scrollView.contentInset = inset;
 		
 		// Adjust scroller insets in the same way
@@ -360,6 +370,9 @@ const CGFloat kSQTDefaultAnimationDuration = 0.2f;
     }
     
     _scrollView = scrollView;
+    if (@available(iOS 11.0, *)) {
+        _scrollView.contentInsetAdjustmentBehavior = UIScrollViewContentInsetAdjustmentNever;
+    }
     [self.panRecognizer.view removeGestureRecognizer:self.panRecognizer];
     [_scrollView addGestureRecognizer:self.panRecognizer];
 }
@@ -407,7 +420,6 @@ const CGFloat kSQTDefaultAnimationDuration = 0.2f;
     if ([navBar isKindOfClass:[SQTShyNavigationBar class]]) {
         return (SQTShyNavigationBar *)navBar;
     }
-    
     return nil;
 }
 
